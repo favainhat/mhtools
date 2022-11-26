@@ -43,6 +43,8 @@ public class ExtractPluginC extends HelperDec implements Decoder {
             while (true) {
                 int unknown = readInt(file);
                 int offset = readInt(file);
+                //System.out.println("unknown:"+String.format("0x%08X", unknown));
+                //System.out.println("offset:"+String.format("0x%08X", offset));
                 if (unknown == -1 && offset == -1) {
                     break;
                 }
@@ -70,16 +72,22 @@ public class ExtractPluginC extends HelperDec implements Decoder {
                 filelist.println(unknown_values.get(j) + ",string_table_" + j
                         + ".txt");
                 int offset_table_start = (int) file.getFilePointer();
+                //int offset_table_start = offset_tables.get(j);
+                //System.out.println("offset_table_start:"+String.format("0x%08X", offset_table_start));
                 int string_table_start = 0;
                 boolean first = false;
                 while (true) {
-                    int unknown = readInt(file);
+                    //int unknown = readInt(file);
+                    //int unknown = 0;
+                    //System.out.println("p_unknown:"+String.format("0x%08X", unknown));
                     int offset = readInt(file);
+                    //System.out.println("p_offset:"+String.format("0x%08X", offset));
                     if (!first) {
                         first = true;
                         string_table_start = offset + offset_table_start;
                     }
                     int actual_offset = (int) file.getFilePointer();
+                    //System.out.println("actual_offset:"+String.format("0x%08X", actual_offset));
                     file.seek(offset + offset_table_start);
                     String str = readString(file);
                     string_table_end = (int) file.getFilePointer();
@@ -88,17 +96,26 @@ public class ExtractPluginC extends HelperDec implements Decoder {
                         // some offsets points to empty strings, so i put this
                         // string to make
                         // sure that it will created at the moment of re-pack
-                        stringout.println(unknown + ",<EMPTY STRING>");
+                        //stringout.println(unknown + ",<EMPTY STRING>");
+                        stringout.println("<EMPTY STRING>");
+                        //System.out.println(str+"\n");
                     } else {
                         str = str.substring(0, str.length() - 1);
                         // need one string per line, so better replace the
                         // newlines
-                        stringout.println(unknown + ","
-                                + str.replaceAll("\n", "<NEWLINE>"));
+                        //stringout.println(unknown + ","
+                        //        + str.replaceAll("\n", "<NEWLINE>"));
+                        stringout.println(str.replaceAll("\n", "<NEWLINE>"));
+                        //System.out.println(str+"\n");
                     }
                     if (file.getFilePointer() >= string_table_start) {
                         break;
                     }
+                    //string_table_start =+8;
+                    //file.seek(string_table_start);
+                    //if(file.getFilePointer() == 0) {
+                    //    break;
+                    //}
                 }
                 stringout.close();
             }

@@ -38,8 +38,9 @@ public class RebuildPluginC extends HelperEnc implements Encoder {
     @Override
     public void compile(String filepath) {
         try {
-            BufferedReader files = new BufferedReader(new FileReader(filepath
-                    + "/filelist.txt"));
+            RandomAccessFile files = new RandomAccessFile(filepath
+                    + "/filelist.txt","r");
+            checkUnicodeBOM(files); // thanks notepad :/ (who the hell uses notepad?)
             String string_file = files.readLine();
             // retrieve the filename and size
             String filename = string_file.split(" ")[0];
@@ -66,6 +67,7 @@ public class RebuildPluginC extends HelperEnc implements Encoder {
             writeInt(out, -1);
             writeInt(out, -1);
             int table_offset = 12;
+            //int table_offset = 8;
             for (int i = 0; i < filenames.size() - 1; i++) {
                 // now start to create each offset table / string table
                 createStringTable(filepath, filenames.get(i), out);
@@ -80,6 +82,7 @@ public class RebuildPluginC extends HelperEnc implements Encoder {
                     writeInt(out, (int) current);
                     out.seek(current);
                     table_offset += 8;
+                    //table_offset += 4;
                     out.seek(current);
                 }
             }
@@ -139,7 +142,7 @@ public class RebuildPluginC extends HelperEnc implements Encoder {
         RandomAccessFile file = new RandomAccessFile(directory + "/" + in, "r");
         checkUnicodeBOM(file); // thanks notepad :/ (*sigh*)
         Vector<String> stringTable = new Vector<String>();
-        Vector<Integer> unknownTable = new Vector<Integer>();
+        //Vector<Integer> unknownTable = new Vector<Integer>();
         try {
             while (true) {
                 // read all strings of file
@@ -148,8 +151,8 @@ public class RebuildPluginC extends HelperEnc implements Encoder {
                     break;
                 }
                 // remove the labels and put the original data
-                unknownTable.add(Integer.parseInt(str.split(",")[0]));
-                str = str.substring(str.indexOf(",") + 1);
+                //unknownTable.add(Integer.parseInt(str.split(",")[0]));
+                //str = str.substring(str.indexOf(",") + 1);
                 str = str.replaceAll("<NEWLINE>", "\n");
                 str = str.replaceAll("<EMPTY STRING>", "\0");
                 stringTable.add(str);
@@ -157,16 +160,18 @@ public class RebuildPluginC extends HelperEnc implements Encoder {
         } catch (EOFException e) {
         }
         file.close();
-        int offset = stringTable.size() * 8;
+        //int offset = stringTable.size() * 8;
+        int offset = stringTable.size() * 4;
         // now calculate the offsets using the length in bytes of the strings
         for (int i = 0; i < stringTable.size(); i++) {
-            writeInt(out, unknownTable.get(i));
+            //writeInt(out, unknownTable.get(i));
             writeInt(out, offset);
-            if (stringTable.elementAt(i).getBytes("UTF-8").length == 1
+            //System.out.println("offset:"+String.format("0x%08X", offset));
+            if (stringTable.elementAt(i).getBytes("MS932").length == 1
                     && stringTable.elementAt(i).charAt(0) == '\0') {
                 offset++;
             } else {
-                offset += stringTable.elementAt(i).getBytes("UTF-8").length + 1;
+                offset += stringTable.elementAt(i).getBytes("MS932").length + 1;
             }
         }
         // now write the zero terminated string in the file
@@ -175,7 +180,7 @@ public class RebuildPluginC extends HelperEnc implements Encoder {
             if (str.equals("\0")) {
                 out.writeByte(0);
             } else {
-                out.write(str.getBytes("UTF-8"));
+                out.write(str.getBytes("MS932"));
                 out.writeByte(0);
             }
         }

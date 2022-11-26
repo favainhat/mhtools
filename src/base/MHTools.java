@@ -33,11 +33,13 @@ import dec.ExtractPluginB;
 import dec.ExtractPluginC;
 import dec.ExtractPluginD;
 import dec.ExtractPluginE;
+import dec.ExtractPluginF;
 import enc.RebuildPluginA;
 import enc.RebuildPluginB;
 import enc.RebuildPluginC;
 import enc.RebuildPluginD;
 import enc.RebuildPluginE;
+import enc.RebuildPluginF;
 
 public class MHTools {
 
@@ -69,6 +71,9 @@ public class MHTools {
             break;
         case 6:
             dec = new ExtractPluginE();
+            break;
+        case 9:
+            dec = new ExtractPluginF(0);
             break;
         default:
             System.err.println("Unknown decoder: " + decoder);
@@ -105,6 +110,9 @@ public class MHTools {
             break;
         case 6:
             enc = new RebuildPluginE();
+            break;
+        case 9:
+            enc = new RebuildPluginF(0);
             break;
         default:
             System.err.println("Unknown encoder: " + encoder);
