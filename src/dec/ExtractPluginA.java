@@ -104,10 +104,10 @@ public class ExtractPluginA extends HelperDec implements Decoder {
                     stringCounter++;
                 }
                 // skip the end-byte mark
-                file.skipBytes(1);
+                //file.skipBytes(1);
                 stringout.close();
             }
-            file.seek(file.getFilePointer() - 1);
+            //file.seek(file.getFilePointer() - 1);
             // calculate the size of the ending padding data and make
             // a file of it
             int size = (int) (file.length() - file.getFilePointer());

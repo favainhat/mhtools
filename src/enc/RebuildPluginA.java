@@ -38,8 +38,9 @@ public class RebuildPluginA extends HelperEnc implements Encoder {
     @Override
     public void compile(String filepath) {
         try {
-            BufferedReader files = new BufferedReader(new FileReader(filepath
-                    + "/filelist.txt"));
+            RandomAccessFile files = new RandomAccessFile(filepath
+                    + "/filelist.txt","r");
+            checkUnicodeBOM(files); // thanks notepad :/ (who the hell uses notepad?)
             String file = files.readLine();
             // retrieve the filename and size
             String filename = file.split(" ")[0];
@@ -182,11 +183,11 @@ public class RebuildPluginA extends HelperEnc implements Encoder {
         // now calculate the offsets using the length in bytes of the strings
         for (int i = 0; i < stringTable.size(); i++) {
             writeInt(out, offset);
-            if (stringTable.elementAt(i).getBytes("UTF-8").length == 1
+            if (stringTable.elementAt(i).getBytes("MS932").length == 1
                     && stringTable.elementAt(i).charAt(0) == '\0') {
                 offset++;
             } else {
-                offset += stringTable.elementAt(i).getBytes("UTF-8").length + 1;
+                offset += stringTable.elementAt(i).getBytes("MS932").length + 1;
             }
         }
         // end of offset table mark
@@ -197,7 +198,7 @@ public class RebuildPluginA extends HelperEnc implements Encoder {
             if (str.equals("\0")) {
                 out.writeByte(0);
             } else {
-                out.write(str.getBytes("UTF-8"));
+                out.write(str.getBytes("MS932"));
                 out.writeByte(0);
             }
         }

@@ -46,8 +46,8 @@ public abstract class HelperDec extends MHUtils {
             }
             file.seek(file.getFilePointer() - 1);
         } catch (EOFException e) {
-            return null;
+            //return null;
         }
-        return new String(buffer, 0, counter, "UTF-8");
+        return new String(buffer, 0, counter, "MS932");
     }
 }

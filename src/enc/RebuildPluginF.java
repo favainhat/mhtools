@@ -35,16 +35,16 @@ import base.Encoder;
 import base.HelperEnc;
 
 /**
- * RebuildPluginB v1.0 - 53xx.bin language table rebuilder
+ * RebuildPluginF v1.0 - 53xx.bin language table rebuilder
  * 
  * @author codestation
  */
-public class RebuildPluginB extends HelperEnc implements Encoder {
+public class RebuildPluginF extends HelperEnc implements Encoder {
 
     private int skip_bytes;
     private int seek_skip;
 
-    public RebuildPluginB(int type) {
+    public RebuildPluginF(int type) {
     	seek_skip = 0;
     	switch(type) {
     	case 7:
@@ -76,30 +76,15 @@ public class RebuildPluginB extends HelperEnc implements Encoder {
             copyfile(filepath + "/" + filename, filename + ".out");
             RandomAccessFile out = new RandomAccessFile(filename + ".out", "rw");
             Vector<Integer> table_offset = new Vector<Integer>();
-            if(seek_skip != 0) {
-            	out.skipBytes(seek_skip);
-            	table_offset.add(readInt(out));
-            } else {
-	            int pointer;
-	            while (true) {
-	                pointer = readInt(out);
-	                if (pointer == 0) {
-	                    break;
-	                }
-                    ///*
-                    long savefp = out.getFilePointer();
-                    out.seek(20+pointer);
-                    int unknown1 = readInt(out);
-                    if (unknown1 == 0||unknown1>out.length()) {
-	                    break;
-	                }
-                    out.seek(savefp);
-                    //*/
-	                table_offset.add(pointer);
-	            }
-            }
-            for (int i = 0; i < table_offset.size(); i++) {
+            table_offset = new Vector<Integer>();
+            table_offset.add(readInt(out));
+            table_offset.add(0x8);
+            //for (int i = 0; i < table_offset.size(); i++) {
+            for (int i = 0; i < 1; i++) {
                 patchStringTable(filepath, filenames.get(i), out, table_offset.get(i));
+            }
+            for (int i = 1; i < 2; i++) {
+                patchStringTable2(filepath, filenames.get(i), out, table_offset.get(i));
             }
             out.close();
             System.out.println("Finished!");
@@ -133,7 +118,7 @@ public class RebuildPluginB extends HelperEnc implements Encoder {
         }
         file.close();
         out.seek(starting_offset + seek_skip);
-        out.skipBytes(20 + skip_bytes);
+        out.skipBytes(24);
         int offset_table_pointer = readInt(out);
 
         out.seek(offset_table_pointer + seek_skip);
@@ -147,7 +132,71 @@ public class RebuildPluginB extends HelperEnc implements Encoder {
         
         if (diff < 0) {
             System.err.println(in + " is too big, please remove at least "
-                    + -diff + " bytes. Skipped");
+                    + -diff + " bytes from string_table_0.txt. Skipped");
+            return;
+        }
+        out.seek(string_table_pointers + seek_skip);
+        int starting_string = readInt(out);
+        out.seek(starting_string + seek_skip);
+        long orig_table_pointer = string_table_pointers;
+        for (String str : stringTable) {
+            out.write(str.getBytes("MS932"));
+            out.writeByte(0);
+            //out.writeByte(0);
+            while (out.getFilePointer() % 4 != 0) {
+                out.writeByte(0);
+            }
+            int tmp = (int) out.getFilePointer();
+            out.seek(string_table_pointers + seek_skip);
+            writeInt(out, starting_string);
+            string_table_pointers += 4;
+            starting_string = tmp - seek_skip;
+            out.seek(tmp);
+        }
+        long current_offset = out.getFilePointer() + seek_skip;
+        while (current_offset < orig_table_pointer) {
+            out.writeByte(0);
+            current_offset++;
+        }
+    }
+
+    private void patchStringTable2(String directory, String in,
+            RandomAccessFile out, int starting_offset)
+            throws FileNotFoundException, IOException {
+        System.out.println("Reading " + directory + "/" + in);
+        RandomAccessFile file = new RandomAccessFile(directory + "/" + in, "r");
+        checkUnicodeBOM(file); // thanks notepad :/ (die notepad, die)
+        Vector<String> stringTable = new Vector<String>();
+        try {
+            while (true) {
+                // read all strings of file
+                String str = readString(file);
+                if (str == null) {
+                    break;
+                }
+                // remove the labels and put the original data
+                str = str.replaceAll("<NEWLINE>", "\n");
+                str = str.replaceAll("<EMPTY STRING>", "\0");
+                stringTable.add(str);
+            }
+        } catch (EOFException e) {
+        }
+        file.close();
+        out.seek(starting_offset + seek_skip);
+        //out.skipBytes(24);
+        int offset_table_pointer = readInt(out);
+
+        out.seek(offset_table_pointer + seek_skip -4);
+        int string_table_pointers = readInt(out);
+        out.seek(string_table_pointers + seek_skip);
+        int string_start = readInt(out);
+        
+        int total = calculateTotalSize(stringTable, 4);
+        int diff = string_table_pointers - string_start - total;
+        
+        if (diff < 0) {
+            System.err.println(in + " is too big, please remove at least "
+                    + -diff + " bytes from string_table_1.txt. Skipped");
             return;
         }
         out.seek(string_table_pointers + seek_skip);

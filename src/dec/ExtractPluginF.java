@@ -32,16 +32,16 @@ import base.Decoder;
 import base.HelperDec;
 
 /**
- * ExtractPluginB v1.0 - 53xx.bin language table extractor
+ * ExtractPluginF v1.0 - 53xx.bin language table extractor
  * 
  * @author Codestation
  */
-public class ExtractPluginB extends HelperDec implements Decoder {
+public class ExtractPluginF extends HelperDec implements Decoder {
 
     private int mhp3_skip_bytes;
     private int mhp3_seek_skip;
 
-    public ExtractPluginB(int newdec) {
+    public ExtractPluginF(int newdec) {
     	mhp3_seek_skip = 0;
     	switch(newdec) {
     	case 2:
@@ -61,36 +61,16 @@ public class ExtractPluginB extends HelperDec implements Decoder {
         try {
             RandomAccessFile file = new RandomAccessFile(filename,"r");
             table_offset = new Vector<Integer>();
-            if(mhp3_seek_skip != 0) {
-            	file.skipBytes(mhp3_seek_skip);
-            	table_offset.add(readInt(file));
-            } else {
-	            int pointer;
-	            while (true) {
-	                pointer = readInt(file);
-	                if (pointer == 0) {
-	                    break;
-	                }
-                    ///*
-                    long savefp = file.getFilePointer();
-                    file.seek(20+pointer);
-                    int unknown1 = readInt(file);
-                    if (unknown1 == 0||unknown1>file.length()) {
-	                    break;
-	                }
-                    file.seek(savefp);
-                    //*/
-	                table_offset.add(pointer);
-	            }
-            }
+            table_offset.add(readInt(file));
+            table_offset.add(0x8);
             filename = new File(filename).getName();
             String directory = filename.split("\\.")[0];
             new File(directory).mkdir();
             PrintStream filelist = new PrintStream(new FileOutputStream(
                     new File(directory + "/filelist.txt")), true, "UTF-8");
             filelist.println(filename + " " + file.length());
-            for (int j = 0; j < table_offset.size(); j++) {
-            //for (int j = 0; j < 1; j++) { //??
+            //for (int j = 0; j < table_offset.size(); j++) {
+            for (int j = 0; j < 1; j++) { //??
                 file.seek(table_offset.get(j) + mhp3_seek_skip);
                 System.out.println("Creating " + directory + "/string_table_"
                         + j + ".txt");
@@ -98,20 +78,9 @@ public class ExtractPluginB extends HelperDec implements Decoder {
                         new File(directory + "/string_table_" + j + ".txt")),
                         true, "UTF-8");
                 filelist.println("string_table_" + j + ".txt");
-                // int unknown0 = readInt(file);
-                // int payment = readInt(file);
-                // int reward = readInt(file);
-                // int decrease = readInt(file);
-                // int unknown_fixed = readInt(file);
-                file.skipBytes(20 + mhp3_skip_bytes);
+                file.skipBytes(24);
                 int offset_table_pointer = readInt(file);
-                // int unknown1 = readInt(file);
-                // int unknown2 = readInt(file);
-                // int unknown3 = readInt(file);
-                // int unknown4 = readInt(file);
-                // int unknown5 = readInt(file);
-                // int unknown6 = readInt(file);
-                // int unknown7 = readInt(file);
+                //System.out.println("offset_table_pointer:"+String.format("0x%08X", offset_table_pointer));
                 file.seek(offset_table_pointer + mhp3_seek_skip);
                 int string_table_pointers = readInt(file);
                 for (long i = string_table_pointers; i < offset_table_pointer; i += 4) {
@@ -134,20 +103,44 @@ public class ExtractPluginB extends HelperDec implements Decoder {
                 stringout.close();
                 file.seek((offset_table_pointer + 7 * 4) + mhp3_seek_skip);
             }
-            if(mhp3_seek_skip == 0) {
-	            // calculate the size of the ending unknown data and
-	            // make a file of it
-	            int size = (int) (file.length() - file.getFilePointer());
-	            unknownData = new byte[size];
-	            file.read(unknownData, 0, size);
-	            System.out.println("Creating " + directory + "/enddata.bin");
-	            RandomAccessFile end = new RandomAccessFile(directory
-	                    + "/enddata.bin", "rw");
-	            filelist.println("enddata.bin");
-	            end.write(unknownData, 0, size);
-	            end.setLength(end.getFilePointer());
-	            end.close();
+            //for (int j = 0; j < table_offset.size(); j++) {
+            ///*
+            for (int j = 1; j < 2; j++) { //??
+                file.seek(table_offset.get(j) + mhp3_seek_skip);
+                System.out.println("Creating " + directory + "/string_table_"
+                        + j + ".txt");
+                PrintStream stringout = new PrintStream(new FileOutputStream(
+                        new File(directory + "/string_table_" + j + ".txt")),
+                        true, "UTF-8");
+                filelist.println("string_table_" + j + ".txt");
+                //file.skipBytes(24);
+                int offset_table_pointer = readInt(file);
+                //System.out.println("offset_table_pointer:"+String.format("0x%08X", offset_table_pointer));
+                file.seek(offset_table_pointer + mhp3_seek_skip-4);
+                int string_table_pointers = readInt(file);
+                for (long i = string_table_pointers;; i += 4) {
+                    file.seek(i + mhp3_seek_skip);
+                    int current_string = readInt(file);
+                    if(current_string == 0)
+                        break;
+                    file.seek(current_string + mhp3_seek_skip);
+                    String str = readString(file);
+                    if (str.length() == 1 && str.charAt(0) == 0) {
+                        // some offsets points to empty strings, so i put this
+                        // string to make
+                        // sure that it will created at the moment of re-pack
+                        stringout.println("<EMPTY STRING>");
+                    } else {
+                        str = str.substring(0, str.length() - 1);
+                        // need one string per line, so better replace the
+                        // newlines
+                        stringout.println(str.replaceAll("\n", "<NEWLINE>"));
+                    }
+                }
+                stringout.close();
+                file.seek((offset_table_pointer + 7 * 4) + mhp3_seek_skip);
             }
+            //*/
             file.close();
             filelist.close();
             System.out.println("Copying " + filename + " to " + directory + "/"
